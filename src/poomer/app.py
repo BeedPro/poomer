@@ -15,6 +15,7 @@ pyglet.options["shadow_window"] = False
 
 from pyglet import gl
 from pyglet.window import NoSuchConfigException, key, mouse
+from pyglet.window.xlib import XlibWindow
 
 from poomer import __version__
 from poomer.config import Config, default_config_path, generate_default_config, load_config
@@ -117,7 +118,7 @@ def read_shader(name: str) -> str:
     return resources.files("poomer.shaders").joinpath(name).read_text()
 
 
-def shader_info_log(shader: gl.GLuint) -> str:
+def shader_info_log(shader: int) -> str:
     length = gl.GLint()
     gl.glGetShaderiv(shader, gl.GL_INFO_LOG_LENGTH, ctypes.byref(length))
     if length.value <= 1:
@@ -127,7 +128,7 @@ def shader_info_log(shader: gl.GLuint) -> str:
     return buffer.value.decode(errors="replace")
 
 
-def program_info_log(program: gl.GLuint) -> str:
+def program_info_log(program: int) -> str:
     length = gl.GLint()
     gl.glGetProgramiv(program, gl.GL_INFO_LOG_LENGTH, ctypes.byref(length))
     if length.value <= 1:
@@ -137,7 +138,7 @@ def program_info_log(program: gl.GLuint) -> str:
     return buffer.value.decode(errors="replace")
 
 
-def compile_shader(source: str, shader_type: int) -> gl.GLuint:
+def compile_shader(source: str, shader_type: int) -> int:
     shader = gl.glCreateShader(shader_type)
     source_buffer = ctypes.create_string_buffer(source.encode())
     source_pointer = ctypes.cast(ctypes.pointer(ctypes.pointer(source_buffer)), ctypes.POINTER(ctypes.POINTER(gl.GLchar)))
@@ -152,7 +153,7 @@ def compile_shader(source: str, shader_type: int) -> gl.GLuint:
     return shader
 
 
-def create_shader_program() -> gl.GLuint:
+def create_shader_program() -> int:
     vertex = compile_shader(read_shader("vert.glsl"), gl.GL_VERTEX_SHADER)
     fragment = compile_shader(read_shader("frag.glsl"), gl.GL_FRAGMENT_SHADER)
     program = gl.glCreateProgram()
@@ -171,11 +172,11 @@ def create_shader_program() -> gl.GLuint:
     return program
 
 
-def uniform_location(program: gl.GLuint, name: str) -> int:
+def uniform_location(program: int, name: str) -> int:
     return gl.glGetUniformLocation(program, name.encode())
 
 
-class PoomerWindow(pyglet.window.Window):
+class PoomerWindow(XlibWindow):
     def __init__(self, config: Config, config_path: Path, windowed: bool, pointer_restore: PointerPosition | None) -> None:
         self.screenshot = Screenshot()
         display = pyglet.display.get_display()
@@ -258,9 +259,9 @@ class PoomerWindow(pyglet.window.Window):
         gl.glBindVertexArray(self.vao)
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, ctypes.sizeof(vertices), vertices, gl.GL_STATIC_DRAW)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, gl.GLsizeiptr(ctypes.sizeof(vertices)), vertices, gl.GL_STATIC_DRAW)
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
-        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, ctypes.sizeof(indices), indices, gl.GL_STATIC_DRAW)
+        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, gl.GLsizeiptr(ctypes.sizeof(indices)), indices, gl.GL_STATIC_DRAW)
 
         stride = 4 * ctypes.sizeof(gl.GLfloat)
         gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(0))
