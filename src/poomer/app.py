@@ -67,7 +67,7 @@ class Xlib:
         self.root = self.lib.XDefaultRootWindow(self.display)
         return self
 
-    def __exit__(self, *args: object) -> None:
+    def __exit__(self, *_args: object) -> None:
         self.lib.XCloseDisplay(self.display)
 
     def pointer_position(self) -> PointerPosition:
@@ -406,12 +406,14 @@ class PoomerWindow(XlibWindow):
         self.flashlight.update(dt)
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
+        del dx, dy
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         self.mouse_state.prev = self.mouse_state.curr
 
     def on_mouse_drag(
         self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int
     ) -> None:
+        del dx, dy, modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if buttons & mouse.LEFT:
             delta = self.camera.world(self.mouse_state.prev) - self.camera.world(
@@ -422,6 +424,7 @@ class PoomerWindow(XlibWindow):
         self.mouse_state.prev = self.mouse_state.curr
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+        del modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if button == mouse.LEFT:
             self.mouse_state.prev = self.mouse_state.curr
@@ -429,10 +432,12 @@ class PoomerWindow(XlibWindow):
             self.camera.velocity = Vec2()
 
     def on_mouse_release(self, x: int, y: int, button: int, modifiers: int) -> None:
+        del x, y, modifiers
         if button == mouse.LEFT:
             self.mouse_state.drag = False
 
     def on_mouse_scroll(self, x: int, y: int, scroll_x: float, scroll_y: float) -> None:
+        del scroll_x
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if scroll_y > 0:
             self.scroll_up()
@@ -440,6 +445,7 @@ class PoomerWindow(XlibWindow):
             self.scroll_down()
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
+        del modifiers
         if symbol in (key.LCTRL, key.RCTRL):
             self.ctrl_down = True
         elif symbol in (key.EQUAL, key.NUM_ADD):
@@ -464,6 +470,7 @@ class PoomerWindow(XlibWindow):
             self.flashlight.enabled = not self.flashlight.enabled
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
+        del modifiers
         if symbol in (key.LCTRL, key.RCTRL):
             self.ctrl_down = False
 
