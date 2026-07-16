@@ -9,6 +9,9 @@ from pathlib import Path
 
 import mss
 import pyglet
+
+pyglet.options["shadow_window"] = False
+
 from pyglet import gl
 from pyglet.window import key, mouse
 

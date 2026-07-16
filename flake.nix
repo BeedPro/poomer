@@ -21,6 +21,13 @@
             ps.mss
             ps.pyglet
           ]);
+          poomer = pkgs.writeShellApplication {
+            name = "poomer";
+            runtimeInputs = [ python ];
+            text = ''
+              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec python -m poomer "$@"
+            '';
+          };
           runtimeLibs = with pkgs; [
             libGL
             libGLU
@@ -36,11 +43,15 @@
           default = pkgs.mkShell {
             packages = [
               python
+              poomer
               pkgs.python312Packages.build
               pkgs.python312Packages.pip
             ] ++ runtimeLibs;
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;
+            shellHook = ''
+              export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
+            '';
           };
         });
     };
