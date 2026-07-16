@@ -131,6 +131,11 @@ def sync_pointer_position(position: PointerPosition | None) -> None:
         pass
 
 
+def schedule_pointer_sync(position: PointerPosition | None) -> None:
+    for delay in (0.05, 0.15, 0.35, 0.75):
+        pyglet.clock.schedule_once(lambda _dt, position=position: sync_pointer_position(position), delay)
+
+
 def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(value, maximum))
 
@@ -265,17 +270,19 @@ class PoomerWindow(pyglet.window.Window):
         self.texture = gl.GLuint()
         self.create_buffers()
         self.create_texture()
-        sync_pointer_position(self.pointer_restore)
-        pyglet.clock.schedule_once(lambda _dt: sync_pointer_position(self.pointer_restore), 0.0)
+        if not windowed:
+            schedule_pointer_sync(self.pointer_restore)
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
     def window_pointer_position(self, position: PointerPosition | None) -> Vec2:
         if position is None:
             return Vec2()
         window_x, window_y = self.get_location()
+        x = clamp(float(position.x - window_x), 0.0, float(self.width))
+        y = clamp(float(position.y - window_y), 0.0, float(self.height))
         return Vec2(
-            clamp(float(position.x - window_x), 0.0, float(self.width)),
-            clamp(float(position.y - window_y), 0.0, float(self.height)),
+            x,
+            float(self.height) - y,
         )
 
     def create_buffers(self) -> None:
