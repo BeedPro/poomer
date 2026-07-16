@@ -2,7 +2,9 @@
 
 Python screen zoomer.
 
-![Poomer showcase](docs/assets/showcase.gif)
+<p align="center">
+  <img src="docs/assets/showcase.gif" alt="Poomer showcase">
+</p>
 
 ## Quick Start
 
