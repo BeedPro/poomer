@@ -6,9 +6,9 @@ from pathlib import Path
 
 @dataclass(slots=True)
 class Config:
-    min_scale: float = 0.01
-    scroll_speed: float = 1.5
-    drag_friction: float = 6.0
+    min_scale: float = 0.4
+    scroll_speed: float = 1.6
+    drag_friction: float = 8.0
     scale_friction: float = 4.0
     reverse_highlight_scroll: bool = True
 
