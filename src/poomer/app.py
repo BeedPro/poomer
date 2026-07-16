@@ -106,7 +106,7 @@ class PoomerWindow(pyglet.window.Window):
         super().__init__(
             width=width,
             height=height,
-            caption="boomer",
+            caption="poomer",
             fullscreen=not windowed,
             resizable=windowed,
             vsync=True,

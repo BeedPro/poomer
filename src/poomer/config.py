@@ -16,7 +16,7 @@ DEFAULT_CONFIG = Config()
 
 
 def default_config_path() -> Path:
-    return Path.home() / ".config" / "boomer" / "config"
+    return Path.home() / ".config" / "poomer" / "config"
 
 
 def load_config(path: Path) -> Config:

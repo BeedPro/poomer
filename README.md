@@ -1,6 +1,6 @@
 # Poomer
 
-Python port of [tsoding/boomer](https://github.com/tsoding/boomer), a Linux screen zoomer.
+Python screen zoomer inspired by the original Nim implementation.
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ $ sudo apt-get install libgl1-mesa-dev libx11-dev libxext-dev libxrandr-dev
 
 ## Configuration
 
-The default config file is `$HOME/.config/boomer/config`, matching upstream Boomer.
+The default config file is `$HOME/.config/poomer/config`.
 
 ```console
 $ poomer --new-config
@@ -56,6 +56,6 @@ Supported parameters:
 | `drag_friction` | How quickly movement slows after dragging. |
 | `scale_friction` | How quickly zoom momentum slows after scrolling. |
 
-## Upstream Differences
+## Credit
 
-This port is implemented in Python instead of Nim. It keeps the main snapshot zoomer behavior, but the experimental Nim compile-time features (`live`, `mitshm`, and `select`) are not ported.
+Poomer is inspired by [tsoding/boomer](https://github.com/tsoding/boomer). This project is implemented in Python instead of Nim and keeps the main snapshot zoomer behavior; the experimental Nim compile-time features (`live`, `mitshm`, and `select`) are not ported.
