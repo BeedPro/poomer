@@ -10,7 +10,7 @@ class Config:
     scroll_speed: float = 1.5
     drag_friction: float = 6.0
     scale_friction: float = 4.0
-    reverse_highlight_scroll: bool = False
+    reverse_highlight_scroll: bool = True
 
 
 DEFAULT_CONFIG = Config()
