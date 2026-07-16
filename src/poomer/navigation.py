@@ -5,7 +5,6 @@ from math import hypot
 
 from poomer.config import Config
 
-
 VELOCITY_THRESHOLD = 15.0
 
 
