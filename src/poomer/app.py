@@ -13,7 +13,7 @@ import pyglet
 pyglet.options["shadow_window"] = False
 
 from pyglet import gl
-from pyglet.window import key, mouse
+from pyglet.window import NoSuchConfigException, key, mouse
 
 from poomer import __version__
 from poomer.config import Config, default_config_path, generate_default_config, load_config
@@ -21,6 +21,14 @@ from poomer.navigation import Camera, Flashlight, Mouse, Vec2
 
 
 INITIAL_FL_DELTA_RADIUS = 250.0
+
+
+WINDOW_CONFIGS = (
+    gl.Config(double_buffer=True, depth_size=24),
+    gl.Config(double_buffer=True, depth_size=16),
+    gl.Config(double_buffer=True),
+    gl.Config(),
+)
 
 
 class Screenshot:
@@ -103,14 +111,27 @@ class PoomerWindow(pyglet.window.Window):
         screen = display.get_default_screen()
         width = min(self.screenshot.width, screen.width)
         height = min(self.screenshot.height, screen.height)
-        super().__init__(
-            width=width,
-            height=height,
-            caption="poomer",
-            fullscreen=not windowed,
-            resizable=windowed,
-            vsync=True,
-        )
+        last_error: NoSuchConfigException | None = None
+        for window_config in WINDOW_CONFIGS:
+            try:
+                super().__init__(
+                    width=width,
+                    height=height,
+                    caption="poomer",
+                    fullscreen=not windowed,
+                    resizable=windowed,
+                    vsync=True,
+                    config=window_config,
+                )
+                break
+            except NoSuchConfigException as error:
+                last_error = error
+        else:
+            raise RuntimeError(
+                "Could not create an OpenGL window. Make sure this is running under "
+                "X11/GLX with a working OpenGL driver; if you are using Nix, start "
+                "it from `nix develop`."
+            ) from last_error
 
         self.config = config
         self.config_path = config_path
