@@ -217,7 +217,6 @@ class PoomerWindow(pyglet.window.Window):
         self.flashlight = Flashlight()
         self.mirror = False
         self.ctrl_down = False
-        self.pointer_restore = pointer_restore
         self.rate = float(screen.get_mode().rate or 60)
         self.set_mouse_visible(True)
 
@@ -389,7 +388,6 @@ class PoomerWindow(pyglet.window.Window):
         gl.glDeleteVertexArrays(1, ctypes.byref(self.vao))
         gl.glDeleteProgram(self.shader)
         super().close()
-        restore_pointer_position(self.pointer_restore)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
