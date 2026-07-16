@@ -6,6 +6,7 @@ import sys
 import time
 from importlib import resources
 from pathlib import Path
+from typing import NamedTuple
 
 import mss
 import pyglet
@@ -21,6 +22,99 @@ from poomer.navigation import Camera, Flashlight, Mouse, Vec2
 
 
 INITIAL_FL_DELTA_RADIUS = 250.0
+
+
+class PointerPosition(NamedTuple):
+    x: int
+    y: int
+
+
+class Xlib:
+    def __init__(self) -> None:
+        self.lib = ctypes.CDLL("libX11.so.6")
+        self.lib.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        self.lib.XOpenDisplay.restype = ctypes.c_void_p
+        self.lib.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        self.lib.XDefaultRootWindow.restype = ctypes.c_ulong
+        self.lib.XQueryPointer.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_uint),
+        ]
+        self.lib.XQueryPointer.restype = ctypes.c_int
+        self.lib.XWarpPointer.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_uint,
+            ctypes.c_uint,
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
+        self.lib.XFlush.argtypes = [ctypes.c_void_p]
+        self.lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
+
+    def __enter__(self) -> Xlib:
+        self.display = self.lib.XOpenDisplay(None)
+        if not self.display:
+            raise RuntimeError("Could not open X display")
+        self.root = self.lib.XDefaultRootWindow(self.display)
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.lib.XCloseDisplay(self.display)
+
+    def pointer_position(self) -> PointerPosition:
+        root_return = ctypes.c_ulong()
+        child_return = ctypes.c_ulong()
+        root_x = ctypes.c_int()
+        root_y = ctypes.c_int()
+        win_x = ctypes.c_int()
+        win_y = ctypes.c_int()
+        mask = ctypes.c_uint()
+        if not self.lib.XQueryPointer(
+            self.display,
+            self.root,
+            ctypes.byref(root_return),
+            ctypes.byref(child_return),
+            ctypes.byref(root_x),
+            ctypes.byref(root_y),
+            ctypes.byref(win_x),
+            ctypes.byref(win_y),
+            ctypes.byref(mask),
+        ):
+            raise RuntimeError("Could not query pointer position")
+        return PointerPosition(root_x.value, root_y.value)
+
+    def warp_pointer(self, position: PointerPosition) -> None:
+        self.lib.XWarpPointer(self.display, 0, self.root, 0, 0, 0, 0, position.x, position.y)
+        self.lib.XFlush(self.display)
+
+
+def pointer_position() -> PointerPosition | None:
+    try:
+        with Xlib() as xlib:
+            return xlib.pointer_position()
+    except (OSError, RuntimeError):
+        return None
+
+
+def restore_pointer_position(position: PointerPosition | None) -> None:
+    if position is None:
+        return
+    try:
+        with Xlib() as xlib:
+            xlib.warp_pointer(position)
+    except (OSError, RuntimeError):
+        pass
 
 
 WINDOW_CONFIGS = (
@@ -334,8 +428,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.config} doesn't exist. Using default values.", file=sys.stderr)
     print(f"Using config: {config}")
 
+    original_pointer_position = pointer_position()
     PoomerWindow(config, args.config, args.windowed)
-    pyglet.app.run()
+    try:
+        pyglet.app.run()
+    finally:
+        restore_pointer_position(original_pointer_position)
     return 0
 
 

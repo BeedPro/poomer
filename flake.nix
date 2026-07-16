@@ -89,8 +89,7 @@
               poomerNixgl
               poomerNixglMesa
               poomerNixglNvidia
-              pkgs.python312Packages.build
-              pkgs.python312Packages.pip
+              pkgs.uv
             ] ++ runtimeLibs;
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;

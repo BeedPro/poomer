@@ -5,9 +5,15 @@ Python screen zoomer inspired by the original Nim implementation.
 ## Quick Start
 
 ```console
-$ python -m pip install -e .
+$ uv pip install -e .
 $ poomer --help
 $ poomer
+```
+
+Build distributions with `uv`:
+
+```console
+$ uv build
 ```
 
 With Nix flakes:
@@ -36,30 +42,30 @@ The `poomer-nixgl*` commands are provided by this flake and fetch the locked `ni
 
 ## System Dependencies
 
-Poomer uses `pyglet` for the OpenGL window and `mss` for screen capture. Install Python, pip, and OpenGL/X11 runtime libraries for your distro.
+Poomer uses `pyglet` for the OpenGL window and `mss` for screen capture. Install Python, uv, and OpenGL/X11 runtime libraries for your distro.
 
 Debian/Ubuntu:
 
 ```console
-$ sudo apt-get install python3 python3-pip libgl1-mesa-dev libglu1-mesa libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2
+$ sudo apt-get install python3 uv libgl1-mesa-dev libglu1-mesa libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2
 ```
 
 Void Linux:
 
 ```console
-$ sudo xbps-install -S python3 python3-pip libglvnd glu libX11 libXcursor libXext libXi libXinerama libXrandr
+$ sudo xbps-install -S python3 uv libglvnd glu libX11 libXcursor libXext libXi libXinerama libXrandr
 ```
 
 Arch Linux:
 
 ```console
-$ sudo pacman -S python python-pip libglvnd glu libx11 libxcursor libxext libxi libxinerama libxrandr
+$ sudo pacman -S python uv libglvnd glu libx11 libxcursor libxext libxi libxinerama libxrandr
 ```
 
 Fedora:
 
 ```console
-$ sudo dnf install python3 python3-pip mesa-libGL mesa-libGLU libX11 libXcursor libXext libXi libXinerama libXrandr
+$ sudo dnf install python3 uv mesa-libGL mesa-libGLU libX11 libXcursor libXext libXi libXinerama libXrandr
 ```
 
 ## Controls
