@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import importlib
 import sys
 import time
 from importlib import resources
@@ -11,15 +12,23 @@ from typing import NamedTuple
 import mss
 import pyglet
 
-pyglet.options["shadow_window"] = False
-
-from pyglet import gl
-from pyglet.window import NoSuchConfigException, key, mouse
-from pyglet.window.xlib import XlibWindow
-
 from poomer import __version__
-from poomer.config import Config, default_config_path, generate_default_config, load_config
+from poomer.config import (
+    Config,
+    default_config_path,
+    generate_default_config,
+    load_config,
+)
 from poomer.navigation import Camera, Flashlight, Mouse, Vec2
+
+pyglet.options["shadow_window"] = False
+gl = importlib.import_module("pyglet.gl")
+pyglet_window = importlib.import_module("pyglet.window")
+key = importlib.import_module("pyglet.window.key")
+mouse = importlib.import_module("pyglet.window.mouse")
+pyglet_xlib_window = importlib.import_module("pyglet.window.xlib")
+NoSuchConfigException = pyglet_window.NoSuchConfigException
+XlibWindow = pyglet_xlib_window.XlibWindow
 
 
 INITIAL_FL_DELTA_RADIUS = 250.0
@@ -83,6 +92,7 @@ class Xlib:
             raise RuntimeError("Could not query pointer position")
         return PointerPosition(root_x.value, root_y.value)
 
+
 def pointer_position() -> PointerPosition | None:
     try:
         with Xlib() as xlib:
@@ -141,7 +151,10 @@ def program_info_log(program: int) -> str:
 def compile_shader(source: str, shader_type: int) -> int:
     shader = gl.glCreateShader(shader_type)
     source_buffer = ctypes.create_string_buffer(source.encode())
-    source_pointer = ctypes.cast(ctypes.pointer(ctypes.pointer(source_buffer)), ctypes.POINTER(ctypes.POINTER(gl.GLchar)))
+    source_pointer = ctypes.cast(
+        ctypes.pointer(ctypes.pointer(source_buffer)),
+        ctypes.POINTER(ctypes.POINTER(gl.GLchar)),
+    )
     length = gl.GLint(len(source_buffer.value))
     gl.glShaderSource(shader, 1, source_pointer, ctypes.byref(length))
     gl.glCompileShader(shader)
@@ -177,7 +190,13 @@ def uniform_location(program: int, name: str) -> int:
 
 
 class PoomerWindow(XlibWindow):
-    def __init__(self, config: Config, config_path: Path, windowed: bool, pointer_restore: PointerPosition | None) -> None:
+    def __init__(
+        self,
+        config: Config,
+        config_path: Path,
+        windowed: bool,
+        pointer_restore: PointerPosition | None,
+    ) -> None:
         self.screenshot = Screenshot()
         display = pyglet.display.get_display()
         screen = display.get_default_screen()
@@ -186,7 +205,9 @@ class PoomerWindow(XlibWindow):
         last_error: NoSuchConfigException | None = None
         for window_config in WINDOW_CONFIGS:
             try:
-                style = None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
+                style = (
+                    None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
+                )
                 super().__init__(
                     width=width,
                     height=height,
@@ -246,10 +267,22 @@ class PoomerWindow(XlibWindow):
         w = float(self.screenshot.width)
         h = float(self.screenshot.height)
         vertices = (gl.GLfloat * 16)(
-            w, 0.0, 1.0, 1.0,
-            w, h, 1.0, 0.0,
-            0.0, h, 0.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+            w,
+            0.0,
+            1.0,
+            1.0,
+            w,
+            h,
+            1.0,
+            0.0,
+            0.0,
+            h,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
         indices = (gl.GLuint * 6)(0, 1, 3, 1, 2, 3)
 
@@ -259,14 +292,33 @@ class PoomerWindow(XlibWindow):
         gl.glBindVertexArray(self.vao)
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, gl.GLsizeiptr(ctypes.sizeof(vertices)), vertices, gl.GL_STATIC_DRAW)
+        gl.glBufferData(
+            gl.GL_ARRAY_BUFFER,
+            gl.GLsizeiptr(ctypes.sizeof(vertices)),
+            vertices,
+            gl.GL_STATIC_DRAW,
+        )
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
-        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, gl.GLsizeiptr(ctypes.sizeof(indices)), indices, gl.GL_STATIC_DRAW)
+        gl.glBufferData(
+            gl.GL_ELEMENT_ARRAY_BUFFER,
+            gl.GLsizeiptr(ctypes.sizeof(indices)),
+            indices,
+            gl.GL_STATIC_DRAW,
+        )
 
         stride = 4 * ctypes.sizeof(gl.GLfloat)
-        gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(0))
+        gl.glVertexAttribPointer(
+            0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(0)
+        )
         gl.glEnableVertexAttribArray(0)
-        gl.glVertexAttribPointer(1, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(2 * ctypes.sizeof(gl.GLfloat)))
+        gl.glVertexAttribPointer(
+            1,
+            2,
+            gl.GL_FLOAT,
+            gl.GL_FALSE,
+            stride,
+            ctypes.c_void_p(2 * ctypes.sizeof(gl.GLfloat)),
+        )
         gl.glEnableVertexAttribArray(1)
 
     def create_texture(self) -> None:
@@ -287,8 +339,12 @@ class PoomerWindow(XlibWindow):
         )
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(
+            gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER
+        )
+        gl.glTexParameteri(
+            gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER
+        )
 
     def scroll_up(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
@@ -310,30 +366,57 @@ class PoomerWindow(XlibWindow):
         gl.glClearColor(0.1, 0.1, 0.1, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glUseProgram(self.shader)
-        gl.glUniform2f(uniform_location(self.shader, "cameraPos"), self.camera.position.x, self.camera.position.y)
+        gl.glUniform2f(
+            uniform_location(self.shader, "cameraPos"),
+            self.camera.position.x,
+            self.camera.position.y,
+        )
         gl.glUniform1f(uniform_location(self.shader, "cameraScale"), self.camera.scale)
-        gl.glUniform2f(uniform_location(self.shader, "screenshotSize"), self.screenshot.width, self.screenshot.height)
-        gl.glUniform2f(uniform_location(self.shader, "windowSize"), self.width, self.height)
-        gl.glUniform2f(uniform_location(self.shader, "cursorPos"), self.mouse_state.curr.x, self.mouse_state.curr.y)
-        gl.glUniform1f(uniform_location(self.shader, "flShadow"), self.flashlight.shadow)
-        gl.glUniform1f(uniform_location(self.shader, "flRadius"), self.flashlight.radius)
+        gl.glUniform2f(
+            uniform_location(self.shader, "screenshotSize"),
+            self.screenshot.width,
+            self.screenshot.height,
+        )
+        gl.glUniform2f(
+            uniform_location(self.shader, "windowSize"), self.width, self.height
+        )
+        gl.glUniform2f(
+            uniform_location(self.shader, "cursorPos"),
+            self.mouse_state.curr.x,
+            self.mouse_state.curr.y,
+        )
+        gl.glUniform1f(
+            uniform_location(self.shader, "flShadow"), self.flashlight.shadow
+        )
+        gl.glUniform1f(
+            uniform_location(self.shader, "flRadius"), self.flashlight.radius
+        )
         gl.glUniform1i(uniform_location(self.shader, "mirror"), 1 if self.mirror else 0)
         gl.glUniform1i(uniform_location(self.shader, "tex"), 0)
         gl.glBindVertexArray(self.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, None)
 
     def update(self, dt: float) -> None:
-        self.camera.update(self.app_config, dt, self.mouse_state, Vec2(float(self.width), float(self.height)))
+        self.camera.update(
+            self.app_config,
+            dt,
+            self.mouse_state,
+            Vec2(float(self.width), float(self.height)),
+        )
         self.flashlight.update(dt)
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         self.mouse_state.prev = self.mouse_state.curr
 
-    def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int) -> None:
+    def on_mouse_drag(
+        self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int
+    ) -> None:
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if buttons & mouse.LEFT:
-            delta = self.camera.world(self.mouse_state.prev) - self.camera.world(self.mouse_state.curr)
+            delta = self.camera.world(self.mouse_state.prev) - self.camera.world(
+                self.mouse_state.curr
+            )
             self.camera.position = self.camera.position + delta
             self.camera.velocity = delta * self.rate
         self.mouse_state.prev = self.mouse_state.curr
@@ -396,11 +479,32 @@ class PoomerWindow(XlibWindow):
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="poomer")
-    parser.add_argument("-d", "--delay", type=float, default=0.0, help="delay execution by seconds")
-    parser.add_argument("-c", "--config", type=Path, default=default_config_path(), help="config file path")
-    parser.add_argument("--new-config", nargs="?", const=default_config_path(), type=Path, help="generate a default config")
-    parser.add_argument("-w", "--windowed", action="store_true", help="windowed mode instead of fullscreen")
-    parser.add_argument("-V", "--version", action="version", version=f"poomer-{__version__}")
+    parser.add_argument(
+        "-d", "--delay", type=float, default=0.0, help="delay execution by seconds"
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=Path,
+        default=default_config_path(),
+        help="config file path",
+    )
+    parser.add_argument(
+        "--new-config",
+        nargs="?",
+        const=default_config_path(),
+        type=Path,
+        help="generate a default config",
+    )
+    parser.add_argument(
+        "-w",
+        "--windowed",
+        action="store_true",
+        help="windowed mode instead of fullscreen",
+    )
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"poomer-{__version__}"
+    )
     return parser.parse_args(argv)
 
 

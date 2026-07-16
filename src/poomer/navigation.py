@@ -49,7 +49,9 @@ class Camera:
     def world(self, point: Vec2) -> Vec2:
         return point / self.scale
 
-    def update(self, config: Config, dt: float, mouse: Mouse, window_size: Vec2) -> None:
+    def update(
+        self, config: Config, dt: float, mouse: Mouse, window_size: Vec2
+    ) -> None:
         if abs(self.delta_scale) > 0.5:
             p0 = (self.scale_pivot - window_size * 0.5) / self.scale
             self.scale = max(self.scale + self.delta_scale * dt, config.min_scale)
