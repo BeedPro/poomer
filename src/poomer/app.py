@@ -121,6 +121,10 @@ def restore_pointer_position(position: PointerPosition | None) -> None:
         pass
 
 
+def clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(value, maximum))
+
+
 WINDOW_CONFIGS = (
     gl.Config(double_buffer=True, depth_size=24),
     gl.Config(double_buffer=True, depth_size=16),
@@ -235,12 +239,14 @@ class PoomerWindow(pyglet.window.Window):
         self.app_config = config
         self.config_path = config_path
         self.camera = Camera(scale=1.0)
-        self.mouse_state = Mouse()
+        cursor = self.window_pointer_position(pointer_restore)
+        self.mouse_state = Mouse(curr=cursor, prev=cursor)
         self.flashlight = Flashlight()
         self.mirror = False
         self.ctrl_down = False
         self.pointer_restore = pointer_restore
         self.rate = float(screen.get_mode().rate or 60)
+        self.set_mouse_visible(True)
 
         self.shader = create_shader_program()
         self.vao = gl.GLuint()
@@ -250,6 +256,15 @@ class PoomerWindow(pyglet.window.Window):
         self.create_buffers()
         self.create_texture()
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
+
+    def window_pointer_position(self, position: PointerPosition | None) -> Vec2:
+        if position is None:
+            return Vec2()
+        window_x, window_y = self.get_location()
+        return Vec2(
+            clamp(float(position.x - window_x), 0.0, float(self.width)),
+            clamp(float(position.y - window_y), 0.0, float(self.height)),
+        )
 
     def create_buffers(self) -> None:
         w = float(self.screenshot.width)
