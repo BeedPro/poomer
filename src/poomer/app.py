@@ -129,8 +129,10 @@ class PoomerWindow(pyglet.window.Window):
         else:
             raise RuntimeError(
                 "Could not create an OpenGL window. Make sure this is running under "
-                "X11/GLX with a working OpenGL driver; if you are using Nix, start "
-                "it from `nix develop`."
+                "X11/GLX with a working OpenGL driver. If you are using Nix as a "
+                "package manager on a non-NixOS distro, install nixGL and run "
+                "`poomer-nixgl-nvidia` for NVIDIA or `poomer-nixgl-mesa` for "
+                "Mesa/AMD/Intel."
             ) from last_error
 
         self.config = config

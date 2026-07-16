@@ -18,12 +18,48 @@ $ poomer --help
 $ poomer
 ```
 
-## Dependencies
-
-Poomer uses `pyglet` for the OpenGL window and `mss` for screen capture. On Debian-like systems you still need OpenGL/X11 runtime libraries installed.
+On non-NixOS distributions, run the OpenGL window through `nixGL`:
 
 ```console
-$ sudo apt-get install libgl1-mesa-dev libx11-dev libxext-dev libxrandr-dev
+$ nix develop
+$ poomer-nixgl
+```
+
+If the default wrapper does not match your graphics driver, use one of the explicit wrappers:
+
+```console
+$ poomer-nixgl-mesa    # AMD/Intel Mesa drivers
+$ poomer-nixgl-nvidia  # NVIDIA proprietary drivers
+```
+
+The `poomer-nixgl*` commands expect a nixGL wrapper (`nixGL`, `nixGLIntel`, or `nixGLNvidia`) to already be installed on your system. This is only needed when using Nix as a package manager on non-NixOS distributions.
+
+## System Dependencies
+
+Poomer uses `pyglet` for the OpenGL window and `mss` for screen capture. Install Python, pip, and OpenGL/X11 runtime libraries for your distro.
+
+Debian/Ubuntu:
+
+```console
+$ sudo apt-get install python3 python3-pip libgl1-mesa-dev libglu1-mesa libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2
+```
+
+Void Linux:
+
+```console
+$ sudo xbps-install -S python3 python3-pip libglvnd glu libX11 libXcursor libXext libXi libXinerama libXrandr
+```
+
+Arch Linux:
+
+```console
+$ sudo pacman -S python python-pip libglvnd glu libx11 libxcursor libxext libxi libxinerama libxrandr
+```
+
+Fedora:
+
+```console
+$ sudo dnf install python3 python3-pip mesa-libGL mesa-libGLU libX11 libXcursor libXext libXi libXinerama libXrandr
 ```
 
 ## Controls
