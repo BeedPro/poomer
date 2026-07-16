@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import ctypes
 import sys
-import time
 from importlib import resources
 from pathlib import Path
 from typing import NamedTuple
@@ -48,19 +47,6 @@ class Xlib:
             ctypes.POINTER(ctypes.c_uint),
         ]
         self.lib.XQueryPointer.restype = ctypes.c_int
-        self.lib.XWarpPointer.argtypes = [
-            ctypes.c_void_p,
-            ctypes.c_ulong,
-            ctypes.c_ulong,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_uint,
-            ctypes.c_uint,
-            ctypes.c_int,
-            ctypes.c_int,
-        ]
-        self.lib.XFlush.argtypes = [ctypes.c_void_p]
-        self.lib.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
         self.lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
 
     def __enter__(self) -> Xlib:
@@ -95,30 +81,12 @@ class Xlib:
             raise RuntimeError("Could not query pointer position")
         return PointerPosition(root_x.value, root_y.value)
 
-    def warp_pointer(self, position: PointerPosition) -> None:
-        self.lib.XWarpPointer(self.display, 0, self.root, 0, 0, 0, 0, position.x, position.y)
-        self.lib.XFlush(self.display)
-        self.lib.XSync(self.display, False)
-
-
 def pointer_position() -> PointerPosition | None:
     try:
         with Xlib() as xlib:
             return xlib.pointer_position()
     except (OSError, RuntimeError):
         return None
-
-
-def restore_pointer_position(position: PointerPosition | None) -> None:
-    if position is None:
-        return
-    try:
-        with Xlib() as xlib:
-            for delay in (0.05, 0.15):
-                time.sleep(delay)
-                xlib.warp_pointer(position)
-    except (OSError, RuntimeError):
-        pass
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -216,15 +184,20 @@ class PoomerWindow(pyglet.window.Window):
         last_error: NoSuchConfigException | None = None
         for window_config in WINDOW_CONFIGS:
             try:
+                style = None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
                 super().__init__(
                     width=width,
                     height=height,
                     caption="poomer",
-                    fullscreen=not windowed,
+                    fullscreen=False,
                     resizable=windowed,
+                    style=style,
+                    screen=screen,
                     vsync=True,
                     config=window_config,
                 )
+                if not windowed:
+                    self.set_location(screen.x, screen.y)
                 break
             except NoSuchConfigException as error:
                 last_error = error
@@ -453,10 +426,7 @@ def main(argv: list[str] | None = None) -> int:
 
     original_pointer_position = pointer_position()
     PoomerWindow(config, args.config, args.windowed, original_pointer_position)
-    try:
-        pyglet.app.run()
-    finally:
-        restore_pointer_position(original_pointer_position)
+    pyglet.app.run()
     return 0
 
 
