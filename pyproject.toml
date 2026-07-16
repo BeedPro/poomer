@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poomer"
+version = "0.1.0"
+description = "Python port of tsoding/boomer, a Linux screen zoomer"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "mss>=9.0",
+  "pyglet>=2.0",
+]
+
+[project.scripts]
+poomer = "poomer.app:main"
+boomer = "poomer.app:main"
+
+[tool.setuptools.package-data]
+poomer = ["shaders/*.glsl"]
