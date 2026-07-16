@@ -32,7 +32,7 @@ $ poomer-nixgl-mesa    # AMD/Intel Mesa drivers
 $ poomer-nixgl-nvidia  # NVIDIA proprietary drivers
 ```
 
-The `poomer-nixgl*` commands expect a nixGL wrapper (`nixGL`, `nixGLIntel`, or `nixGLNvidia`) to already be installed on your system. This is only needed when using Nix as a package manager on non-NixOS distributions.
+The `poomer-nixgl*` commands are provided by this flake and fetch the locked `nixGL` wrapper through Nix. You do not need distro packages for these when using Nix; install the system dependencies below only when running Poomer outside Nix.
 
 ## System Dependencies
 

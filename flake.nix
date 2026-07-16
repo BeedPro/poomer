@@ -3,9 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixgl.url = "github:nix-community/nixGL";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nixgl }:
     let
       supportedSystems = [
         "x86_64-linux"
@@ -28,42 +29,23 @@
               PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec python -m poomer "$@"
             '';
           };
-          makeNixglPoomer = name: commandScript:
+          makeNixglPoomer = name: nixglPackage:
             pkgs.writeShellApplication {
               inherit name;
               runtimeInputs = [ python ];
               text = ''
-                ${commandScript}
+                if ! command -v nix >/dev/null 2>&1; then
+                  printf '%s\n' "The nix command is required to launch ${name}." >&2
+                  exit 127
+                fi
 
-                printf '%s\n' "No nixGL wrapper found on PATH." >&2
-                printf '%s\n' "Install nixGL for your distro/GPU, then retry this command." >&2
-                exit 127
+                export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
+                exec nix run --impure ${nixgl}#${nixglPackage} -- python -m poomer "$@"
               '';
             };
-          poomerNixgl = makeNixglPoomer "poomer-nixgl" ''
-            if command -v nixGL >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGL python -m poomer "$@"
-            fi
-            if command -v nixGLIntel >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGLIntel python -m poomer "$@"
-            fi
-            if command -v nixGLNvidia >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGLNvidia python -m poomer "$@"
-            fi
-          '';
-          poomerNixglMesa = makeNixglPoomer "poomer-nixgl-mesa" ''
-            if command -v nixGL >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGL python -m poomer "$@"
-            fi
-            if command -v nixGLIntel >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGLIntel python -m poomer "$@"
-            fi
-          '';
-          poomerNixglNvidia = makeNixglPoomer "poomer-nixgl-nvidia" ''
-            if command -v nixGLNvidia >/dev/null 2>&1; then
-              PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}" exec nixGLNvidia python -m poomer "$@"
-            fi
-          '';
+          poomerNixgl = makeNixglPoomer "poomer-nixgl" "nixGLDefault";
+          poomerNixglMesa = makeNixglPoomer "poomer-nixgl-mesa" "nixGLDefault";
+          poomerNixglNvidia = makeNixglPoomer "poomer-nixgl-nvidia" "nixGLNvidia";
           runtimeLibs = with pkgs; [
             libGL
             libGLU
