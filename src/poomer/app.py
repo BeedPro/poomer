@@ -121,6 +121,16 @@ def restore_pointer_position(position: PointerPosition | None) -> None:
         pass
 
 
+def sync_pointer_position(position: PointerPosition | None) -> None:
+    if position is None:
+        return
+    try:
+        with Xlib() as xlib:
+            xlib.warp_pointer(position)
+    except (OSError, RuntimeError):
+        pass
+
+
 def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(value, maximum))
 
@@ -255,6 +265,8 @@ class PoomerWindow(pyglet.window.Window):
         self.texture = gl.GLuint()
         self.create_buffers()
         self.create_texture()
+        sync_pointer_position(self.pointer_restore)
+        pyglet.clock.schedule_once(lambda _dt: sync_pointer_position(self.pointer_restore), 0.0)
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
     def window_pointer_position(self, position: PointerPosition | None) -> Vec2:
