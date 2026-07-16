@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import sys
+import time
 from importlib import resources
 from pathlib import Path
 from typing import NamedTuple
@@ -290,14 +291,16 @@ class PoomerWindow(pyglet.window.Window):
 
     def scroll_up(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
-            self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS
+            direction = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
+            self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS * direction
         else:
             self.camera.delta_scale += self.app_config.scroll_speed
             self.camera.scale_pivot = self.mouse_state.curr
 
     def scroll_down(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
-            self.flashlight.delta_radius -= INITIAL_FL_DELTA_RADIUS
+            direction = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
+            self.flashlight.delta_radius -= INITIAL_FL_DELTA_RADIUS * direction
         else:
             self.camera.delta_scale -= self.app_config.scroll_speed
             self.camera.scale_pivot = self.mouse_state.curr

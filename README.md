@@ -97,6 +97,7 @@ Supported parameters:
 | `scroll_speed` | How quickly scrolling zooms in/out. |
 | `drag_friction` | How quickly movement slows after dragging. |
 | `scale_friction` | How quickly zoom momentum slows after scrolling. |
+| `reverse_highlight_scroll` | Reverse Ctrl+scroll direction when changing the flashlight/highlight radius. |
 
 ## Credit
 

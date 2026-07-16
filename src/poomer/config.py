@@ -10,9 +10,20 @@ class Config:
     scroll_speed: float = 1.5
     drag_friction: float = 6.0
     scale_friction: float = 4.0
+    reverse_highlight_scroll: bool = False
 
 
 DEFAULT_CONFIG = Config()
+
+
+def parse_bool(value: str) -> bool:
+    match value.lower():
+        case "true" | "yes" | "on" | "1":
+            return True
+        case "false" | "no" | "off" | "0":
+            return False
+        case _:
+            raise ValueError(f"expected boolean value, got {value!r}")
 
 
 def default_config_path() -> Path:
@@ -25,6 +36,7 @@ def load_config(path: Path) -> Config:
         scroll_speed=DEFAULT_CONFIG.scroll_speed,
         drag_friction=DEFAULT_CONFIG.drag_friction,
         scale_friction=DEFAULT_CONFIG.scale_friction,
+        reverse_highlight_scroll=DEFAULT_CONFIG.reverse_highlight_scroll,
     )
 
     for line_number, raw_line in enumerate(path.read_text().splitlines(), start=1):
@@ -44,6 +56,11 @@ def load_config(path: Path) -> Config:
                 config.drag_friction = float(value)
             case "scale_friction":
                 config.scale_friction = float(value)
+            case "reverse_highlight_scroll":
+                try:
+                    config.reverse_highlight_scroll = parse_bool(value)
+                except ValueError as error:
+                    raise ValueError(f"{path}:{line_number}: {error}") from error
             case _:
                 raise ValueError(f"{path}:{line_number}: unknown config key {key!r}")
 
@@ -59,6 +76,7 @@ def generate_default_config(path: Path) -> None:
                 f"scroll_speed = {DEFAULT_CONFIG.scroll_speed}",
                 f"drag_friction = {DEFAULT_CONFIG.drag_friction}",
                 f"scale_friction = {DEFAULT_CONFIG.scale_friction}",
+                f"reverse_highlight_scroll = {str(DEFAULT_CONFIG.reverse_highlight_scroll).lower()}",
                 "",
             )
         )
