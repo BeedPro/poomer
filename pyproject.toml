@@ -18,5 +18,8 @@ dependencies = [
 poomer = "poomer.app:main"
 boomer = "poomer.app:main"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools.package-data]
 poomer = ["shaders/*.glsl"]
