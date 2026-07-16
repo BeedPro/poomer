@@ -2,6 +2,8 @@
 
 Python screen zoomer.
 
+![Poomer showcase](docs/assets/showcase.gif)
+
 ## Quick Start
 
 ```console
