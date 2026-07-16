@@ -60,6 +60,7 @@ class Xlib:
             ctypes.c_int,
         ]
         self.lib.XFlush.argtypes = [ctypes.c_void_p]
+        self.lib.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
         self.lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
 
     def __enter__(self) -> Xlib:
@@ -97,6 +98,7 @@ class Xlib:
     def warp_pointer(self, position: PointerPosition) -> None:
         self.lib.XWarpPointer(self.display, 0, self.root, 0, 0, 0, 0, position.x, position.y)
         self.lib.XFlush(self.display)
+        self.lib.XSync(self.display, False)
 
 
 def pointer_position() -> PointerPosition | None:
@@ -112,7 +114,9 @@ def restore_pointer_position(position: PointerPosition | None) -> None:
         return
     try:
         with Xlib() as xlib:
-            xlib.warp_pointer(position)
+            for delay in (0.05, 0.15):
+                time.sleep(delay)
+                xlib.warp_pointer(position)
     except (OSError, RuntimeError):
         pass
 
@@ -199,7 +203,7 @@ def uniform_location(program: gl.GLuint, name: str) -> int:
 
 
 class PoomerWindow(pyglet.window.Window):
-    def __init__(self, config: Config, config_path: Path, windowed: bool) -> None:
+    def __init__(self, config: Config, config_path: Path, windowed: bool, pointer_restore: PointerPosition | None) -> None:
         self.screenshot = Screenshot()
         display = pyglet.display.get_display()
         screen = display.get_default_screen()
@@ -235,6 +239,7 @@ class PoomerWindow(pyglet.window.Window):
         self.flashlight = Flashlight()
         self.mirror = False
         self.ctrl_down = False
+        self.pointer_restore = pointer_restore
         self.rate = float(screen.get_mode().rate or 60)
 
         self.shader = create_shader_program()
@@ -394,6 +399,7 @@ class PoomerWindow(pyglet.window.Window):
         gl.glDeleteVertexArrays(1, ctypes.byref(self.vao))
         gl.glDeleteProgram(self.shader)
         super().close()
+        restore_pointer_position(self.pointer_restore)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -429,7 +435,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Using config: {config}")
 
     original_pointer_position = pointer_position()
-    PoomerWindow(config, args.config, args.windowed)
+    PoomerWindow(config, args.config, args.windowed, original_pointer_position)
     try:
         pyglet.app.run()
     finally:

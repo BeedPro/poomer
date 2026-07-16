@@ -1,0 +1,36 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "mss"
+version = "10.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/5d/eee782a6d674f562c946ae6a026f4c595ea2b7b031f290bf9fbf60da09b5/mss-10.2.0.tar.gz", hash = "sha256:ab271860775545e62f29d7b11f82f279ac1048f5bbdd26cfad84830208dbd393", size = 200317, upload-time = "2026-04-23T10:44:57.305Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f2/c3/313e14f245c79b4c05bd0f3a84a4813aa26fa10f8993aebd91d04c5fad3f/mss-10.2.0-py3-none-any.whl", hash = "sha256:e79f428899280e7e64e38365b5bfed683851ebea807eeaeadaf06eb8e0d67197", size = 67106, upload-time = "2026-04-23T10:44:56.266Z" },
+]
+
+[[package]]
+name = "poomer"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "mss" },
+    { name = "pyglet" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mss", specifier = ">=9.0" },
+    { name = "pyglet", specifier = ">=2.0" },
+]
+
+[[package]]
+name = "pyglet"
+version = "2.1.15"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/ee/5caebffaf0345e5ccf342c30605898bd07654cee626154f7af2e465cc81c/pyglet-2.1.15.tar.gz", hash = "sha256:0ef34fe730808a97e48c24dd6ed4ff614024b980955ed8dbc2dd01ededaa08cb", size = 6597005, upload-time = "2026-06-28T11:39:09.98Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1e/a8/9a203001fa496934708baf6cadc54b62e453f1256d5d88589c71019dd751/pyglet-2.1.15-py3-none-any.whl", hash = "sha256:8709131baf5e96c496d38197ff9f9207ad06f273c9694570008b145c58bf51ae", size = 1036800, upload-time = "2026-06-28T11:39:04.717Z" },
+]
