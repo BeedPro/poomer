@@ -40,7 +40,7 @@
                 fi
 
                 export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
-                exec nix run --impure ${nixgl}#${nixglPackage} -- python -m poomer "$@"
+                exec nix shell --impure ${nixgl}#${nixglPackage} --command python -m poomer "$@"
               '';
             };
           poomerNixglNvidia = pkgs.writeShellApplication {
@@ -65,7 +65,7 @@
               fi
 
               export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
-              exec nix run --impure --expr "let pkgs = import ${nixgl.inputs.nixpkgs} { system = builtins.currentSystem; config.allowUnfree = true; }; nixgl = import ${nixgl} { inherit pkgs; nvidiaVersion = \"$nvidia_version\"; }; in nixgl.nixGLNvidia" -- python -m poomer "$@"
+              exec nix shell --impure --expr "let pkgs = import ${nixgl.inputs.nixpkgs} { system = builtins.currentSystem; config.allowUnfree = true; }; nixgl = import ${nixgl} { inherit pkgs; nvidiaVersion = \"$nvidia_version\"; }; in nixgl.nixGLNvidia" --command python -m poomer "$@"
             '';
           };
           poomerNixgl = makeNixglPoomer "poomer-nixgl" "nixGLDefault";
