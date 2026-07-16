@@ -134,7 +134,7 @@ class PoomerWindow(pyglet.window.Window):
                 "for NVIDIA or `poomer-nixgl-mesa` for Mesa/AMD/Intel."
             ) from last_error
 
-        self.config = config
+        self.app_config = config
         self.config_path = config_path
         self.camera = Camera(scale=1.0)
         self.mouse_state = Mouse()
@@ -204,14 +204,14 @@ class PoomerWindow(pyglet.window.Window):
         if self.ctrl_down and self.flashlight.enabled:
             self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS
         else:
-            self.camera.delta_scale += self.config.scroll_speed
+            self.camera.delta_scale += self.app_config.scroll_speed
             self.camera.scale_pivot = self.mouse_state.curr
 
     def scroll_down(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
             self.flashlight.delta_radius -= INITIAL_FL_DELTA_RADIUS
         else:
-            self.camera.delta_scale -= self.config.scroll_speed
+            self.camera.delta_scale -= self.app_config.scroll_speed
             self.camera.scale_pivot = self.mouse_state.curr
 
     def on_draw(self) -> None:
@@ -231,7 +231,7 @@ class PoomerWindow(pyglet.window.Window):
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, None)
 
     def update(self, dt: float) -> None:
-        self.camera.update(self.config, dt, self.mouse_state, Vec2(float(self.width), float(self.height)))
+        self.camera.update(self.app_config, dt, self.mouse_state, Vec2(float(self.width), float(self.height)))
         self.flashlight.update(dt)
 
     def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
@@ -278,8 +278,8 @@ class PoomerWindow(pyglet.window.Window):
             self.close()
         elif symbol == key.R:
             if self.config_path.exists():
-                self.config = load_config(self.config_path)
-                print(f"Reloaded config: {self.config}")
+                self.app_config = load_config(self.config_path)
+                print(f"Reloaded config: {self.app_config}")
         elif symbol == key.M:
             self.camera.position.x += self.screenshot.width / self.camera.scale - 2 * (
                 self.mouse_state.curr.x / self.camera.scale + self.camera.position.x
