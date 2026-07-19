@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import hypot
+from typing import Self
 
 from poomer.config import Config
 
@@ -13,20 +14,20 @@ class Vec2:
     x: float = 0.0
     y: float = 0.0
 
-    def __add__(self, other: Vec2) -> Vec2:
+    def __add__(self: Self, other: Vec2) -> Vec2:
         return Vec2(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other: Vec2) -> Vec2:
+    def __sub__(self: Self, other: Vec2) -> Vec2:
         return Vec2(self.x - other.x, self.y - other.y)
 
-    def __mul__(self, scalar: float) -> Vec2:
+    def __mul__(self: Self, scalar: float) -> Vec2:
         return Vec2(self.x * scalar, self.y * scalar)
 
-    def __truediv__(self, scalar: float) -> Vec2:
+    def __truediv__(self: Self, scalar: float) -> Vec2:
         return Vec2(self.x / scalar, self.y / scalar)
 
     @property
-    def length(self) -> float:
+    def length(self: Self) -> float:
         return hypot(self.x, self.y)
 
 
@@ -45,11 +46,11 @@ class Camera:
     delta_scale: float = 0.0
     scale_pivot: Vec2 = field(default_factory=Vec2)
 
-    def world(self, point: Vec2) -> Vec2:
+    def world(self: Self, point: Vec2) -> Vec2:
         return point / self.scale
 
     def update(
-        self, config: Config, dt: float, mouse: Mouse, window_size: Vec2
+        self: Self, config: Config, dt: float, mouse: Mouse, window_size: Vec2
     ) -> None:
         if abs(self.delta_scale) > 0.5:
             p0: Vec2 = (self.scale_pivot - window_size * 0.5) / self.scale
@@ -70,7 +71,7 @@ class Flashlight:
     radius: float = 200.0
     delta_radius: float = 0.0
 
-    def update(self, dt: float) -> None:
+    def update(self: Self, dt: float) -> None:
         if abs(self.delta_radius) > 1.0:
             self.radius = max(0.0, self.radius + self.delta_radius * dt)
             self.delta_radius -= self.delta_radius * 10.0 * dt

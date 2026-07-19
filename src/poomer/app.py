@@ -7,7 +7,7 @@ import sys
 import time
 from importlib import resources
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Self
 
 import mss
 import pyglet
@@ -40,8 +40,10 @@ class PointerPosition(NamedTuple):
 
 
 class Xlib:
-    def __init__(self) -> None:
-        self.lib = ctypes.CDLL("libX11.so.6")
+    def __init__(self: Self) -> None:
+        self.lib: ctypes.CDLL = ctypes.CDLL("libX11.so.6")
+        self.display: ctypes.c_void_p | None = None
+        self.root: int = 0
         self.lib.XOpenDisplay.argtypes = [ctypes.c_char_p]
         self.lib.XOpenDisplay.restype = ctypes.c_void_p
         self.lib.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
@@ -60,17 +62,17 @@ class Xlib:
         self.lib.XQueryPointer.restype = ctypes.c_int
         self.lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
 
-    def __enter__(self) -> Xlib:
+    def __enter__(self: Self) -> Xlib:
         self.display = self.lib.XOpenDisplay(None)
         if not self.display:
             raise RuntimeError("Could not open X display")
         self.root = self.lib.XDefaultRootWindow(self.display)
         return self
 
-    def __exit__(self, *_args: object) -> None:
+    def __exit__(self: Self, *_args: object) -> None:
         self.lib.XCloseDisplay(self.display)
 
-    def pointer_position(self) -> PointerPosition:
+    def pointer_position(self: Self) -> PointerPosition:
         root_return: ctypes.c_ulong = ctypes.c_ulong()
         child_return: ctypes.c_ulong = ctypes.c_ulong()
         root_x: ctypes.c_int = ctypes.c_int()
@@ -109,7 +111,7 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(value, maximum))
 
 
-WINDOW_CONFIGS = (
+WINDOW_CONFIGS: tuple[gl.Config, ...] = (
     gl.Config(double_buffer=True, depth_size=24),
     gl.Config(double_buffer=True, depth_size=16),
     gl.Config(double_buffer=True),
@@ -118,7 +120,10 @@ WINDOW_CONFIGS = (
 
 
 class Screenshot:
-    def __init__(self) -> None:
+    def __init__(self: Self) -> None:
+        self.width: int
+        self.height: int
+        self.data: bytes
         self.width, self.height, self.data = self._capture()
 
     @staticmethod
@@ -196,40 +201,40 @@ def uniform_location(program: int, name: str) -> int:
 
 class PoomerWindow(XlibWindow):
     def __init__(
-        self,
+        self: Self,
         config: Config,
         config_path: Path,
         windowed: bool,
         pointer_restore: PointerPosition | None,
     ) -> None:
-        self.screenshot = Screenshot()
+        self.screenshot: Screenshot = Screenshot()
         display = pyglet.display.get_display()
         screen = display.get_default_screen()
         width: int = min(self.screenshot.width, screen.width)
         height: int = min(self.screenshot.height, screen.height)
         self._create_window(screen, width, height, windowed)
-        self.app_config = config
-        self.config_path = config_path
-        self.camera = Camera(scale=1.0)
+        self.app_config: Config = config
+        self.config_path: Path = config_path
+        self.camera: Camera = Camera(scale=1.0)
         cursor: Vec2 = self.window_pointer_position(pointer_restore)
-        self.mouse_state = Mouse(curr=cursor, prev=cursor)
-        self.flashlight = Flashlight()
-        self.mirror = False
-        self.ctrl_down = False
-        self.rate = float(screen.get_mode().rate or 60)
+        self.mouse_state: Mouse = Mouse(curr=cursor, prev=cursor)
+        self.flashlight: Flashlight = Flashlight()
+        self.mirror: bool = False
+        self.ctrl_down: bool = False
+        self.rate: float = float(screen.get_mode().rate or 60)
         self.set_mouse_visible(True)
 
-        self.shader = create_shader_program()
-        self.vao = gl.GLuint()
-        self.vbo = gl.GLuint()
-        self.ebo = gl.GLuint()
-        self.texture = gl.GLuint()
+        self.shader: int = create_shader_program()
+        self.vao: gl.GLuint = gl.GLuint()
+        self.vbo: gl.GLuint = gl.GLuint()
+        self.ebo: gl.GLuint = gl.GLuint()
+        self.texture: gl.GLuint = gl.GLuint()
         self.create_buffers()
         self.create_texture()
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
     def _try_window_config(
-        self, screen: object, width: int, height: int, windowed: bool, window_config: object
+        self: Self, screen: object, width: int, height: int, windowed: bool, window_config: object
     ) -> bool:
         try:
             style = (
@@ -252,7 +257,7 @@ class PoomerWindow(XlibWindow):
             return False
 
     def _create_window(
-        self, screen: object, width: int, height: int, windowed: bool
+        self: Self, screen: object, width: int, height: int, windowed: bool
     ) -> None:
         for window_config in WINDOW_CONFIGS:
             if self._try_window_config(screen, width, height, windowed, window_config):
@@ -264,7 +269,7 @@ class PoomerWindow(XlibWindow):
             "for NVIDIA or `poomer-nixgl-mesa` for Mesa/AMD/Intel."
         )
 
-    def window_pointer_position(self, position: PointerPosition | None) -> Vec2:
+    def window_pointer_position(self: Self, position: PointerPosition | None) -> Vec2:
         if position is None:
             return Vec2()
         window_x: int
@@ -277,7 +282,7 @@ class PoomerWindow(XlibWindow):
             float(self.height) - y,
         )
 
-    def create_buffers(self) -> None:
+    def create_buffers(self: Self) -> None:
         w: float = float(self.screenshot.width)
         h: float = float(self.screenshot.height)
         vertices = (gl.GLfloat * 16)(
@@ -335,7 +340,7 @@ class PoomerWindow(XlibWindow):
         )
         gl.glEnableVertexAttribArray(1)
 
-    def create_texture(self) -> None:
+    def create_texture(self: Self) -> None:
         gl.glGenTextures(1, ctypes.byref(self.texture))
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
@@ -360,27 +365,27 @@ class PoomerWindow(XlibWindow):
             gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER
         )
 
-    def _scroll_zoom(self, direction: float) -> None:
+    def _scroll_zoom(self: Self, direction: float) -> None:
         self.camera.delta_scale += self.app_config.scroll_speed * direction
         self.camera.scale_pivot = self.mouse_state.curr
 
-    def _scroll_flashlight(self, direction: float) -> None:
+    def _scroll_flashlight(self: Self, direction: float) -> None:
         d: float = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
         self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS * d * direction
 
-    def scroll_up(self) -> None:
+    def scroll_up(self: Self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
             self._scroll_flashlight(1.0)
         else:
             self._scroll_zoom(1.0)
 
-    def scroll_down(self) -> None:
+    def scroll_down(self: Self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
             self._scroll_flashlight(-1.0)
         else:
             self._scroll_zoom(-1.0)
 
-    def on_draw(self) -> None:
+    def on_draw(self: Self) -> None:
         gl.glClearColor(0.1, 0.1, 0.1, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glUseProgram(self.shader)
@@ -414,7 +419,7 @@ class PoomerWindow(XlibWindow):
         gl.glBindVertexArray(self.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, None)
 
-    def update(self, dt: float) -> None:
+    def update(self: Self, dt: float) -> None:
         self.camera.update(
             self.app_config,
             dt,
@@ -423,12 +428,12 @@ class PoomerWindow(XlibWindow):
         )
         self.flashlight.update(dt)
 
-    def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
+    def on_mouse_motion(self: Self, x: int, y: int, dx: int, dy: int) -> None:
         del dx, dy
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         self.mouse_state.prev = self.mouse_state.curr
 
-    def _handle_drag(self) -> None:
+    def _handle_drag(self: Self) -> None:
         delta: Vec2 = self.camera.world(self.mouse_state.prev) - self.camera.world(
             self.mouse_state.curr
         )
@@ -436,7 +441,7 @@ class PoomerWindow(XlibWindow):
         self.camera.velocity = delta * self.rate
 
     def on_mouse_drag(
-        self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int
+        self: Self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int
     ) -> None:
         del dx, dy, modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
@@ -444,23 +449,23 @@ class PoomerWindow(XlibWindow):
             self._handle_drag()
         self.mouse_state.prev = self.mouse_state.curr
 
-    def _handle_press(self) -> None:
+    def _handle_press(self: Self) -> None:
         self.mouse_state.prev = self.mouse_state.curr
         self.mouse_state.drag = True
         self.camera.velocity = Vec2()
 
-    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+    def on_mouse_press(self: Self, x: int, y: int, button: int, modifiers: int) -> None:
         del modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if button == mouse.LEFT:
             self._handle_press()
 
-    def on_mouse_release(self, x: int, y: int, button: int, modifiers: int) -> None:
+    def on_mouse_release(self: Self, x: int, y: int, button: int, modifiers: int) -> None:
         del x, y, modifiers
         if button == mouse.LEFT:
             self.mouse_state.drag = False
 
-    def on_mouse_scroll(self, x: int, y: int, scroll_x: float, scroll_y: float) -> None:
+    def on_mouse_scroll(self: Self, x: int, y: int, scroll_x: float, scroll_y: float) -> None:
         del scroll_x
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if scroll_y > 0:
@@ -468,7 +473,7 @@ class PoomerWindow(XlibWindow):
         elif scroll_y < 0:
             self.scroll_down()
 
-    def on_key_press(self, symbol: int, modifiers: int) -> None:
+    def on_key_press(self: Self, symbol: int, modifiers: int) -> None:
         del modifiers
         if symbol in (key.LCTRL, key.RCTRL):
             self.ctrl_down = True
@@ -492,12 +497,12 @@ class PoomerWindow(XlibWindow):
         elif symbol == key.F:
             self.flashlight.enabled = not self.flashlight.enabled
 
-    def on_key_release(self, symbol: int, modifiers: int) -> None:
+    def on_key_release(self: Self, symbol: int, modifiers: int) -> None:
         del modifiers
         if symbol in (key.LCTRL, key.RCTRL):
             self.ctrl_down = False
 
-    def close(self) -> None:
+    def close(self: Self) -> None:
         pyglet.clock.unschedule(self.update)
         gl.glDeleteTextures(1, ctypes.byref(self.texture))
         gl.glDeleteBuffers(1, ctypes.byref(self.vbo))
