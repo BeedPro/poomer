@@ -235,12 +235,15 @@ class PoomerWindow(XlibWindow):
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
     def _try_window_config(
-        self, screen: Screen, width: int, height: int, windowed: bool, window_config: object
+        self,
+        screen: Screen,
+        width: int,
+        height: int,
+        windowed: bool,
+        window_config: object,
     ) -> bool:
         try:
-            style = (
-                None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
-            )
+            style = None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
             super().__init__(
                 width=width,
                 height=height,
@@ -345,7 +348,9 @@ class PoomerWindow(XlibWindow):
         gl.glGenTextures(1, ctypes.byref(self.texture))
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
-        data: ctypes.Array[ctypes.c_char] = ctypes.create_string_buffer(self.screenshot.data)
+        data: ctypes.Array[ctypes.c_char] = ctypes.create_string_buffer(
+            self.screenshot.data
+        )
         gl.glTexImage2D(
             gl.GL_TEXTURE_2D,
             0,
@@ -545,7 +550,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def _handle_new_config(config_path: Path) -> int:
-    if config_path.exists() and input(f"File {config_path} already exists. Replace it? [yn] ").lower() != "y":
+    if (
+        config_path.exists()
+        and input(f"File {config_path} already exists. Replace it? [yn] ").lower()
+        != "y"
+    ):
         print("Disaster prevented")
         return 1
     generate_default_config(config_path)
