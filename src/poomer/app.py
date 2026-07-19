@@ -7,11 +7,10 @@ import sys
 import time
 from importlib import resources
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import mss
 import pyglet
-from pyglet.display import Screen
 
 from poomer import __version__
 from poomer.config import (
@@ -236,7 +235,7 @@ class PoomerWindow(XlibWindow):
 
     def _try_window_config(
         self,
-        screen: Screen,
+        screen: Any,
         width: int,
         height: int,
         windowed: bool,
@@ -261,7 +260,7 @@ class PoomerWindow(XlibWindow):
             return False
 
     def _create_window(
-        self, screen: Screen, width: int, height: int, windowed: bool
+        self, screen: Any, width: int, height: int, windowed: bool
     ) -> None:
         for window_config in WINDOW_CONFIGS:
             if self._try_window_config(screen, width, height, windowed, window_config):
