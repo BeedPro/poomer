@@ -31,7 +31,7 @@ NoSuchConfigException = pyglet_window.NoSuchConfigException
 XlibWindow = pyglet_xlib_window.XlibWindow
 
 
-INITIAL_FL_DELTA_RADIUS = 250.0
+INITIAL_FL_DELTA_RADIUS: float = 250.0
 
 
 class PointerPosition(NamedTuple):
@@ -71,13 +71,13 @@ class Xlib:
         self.lib.XCloseDisplay(self.display)
 
     def pointer_position(self) -> PointerPosition:
-        root_return = ctypes.c_ulong()
-        child_return = ctypes.c_ulong()
-        root_x = ctypes.c_int()
-        root_y = ctypes.c_int()
-        win_x = ctypes.c_int()
-        win_y = ctypes.c_int()
-        mask = ctypes.c_uint()
+        root_return: ctypes.c_ulong = ctypes.c_ulong()
+        child_return: ctypes.c_ulong = ctypes.c_ulong()
+        root_x: ctypes.c_int = ctypes.c_int()
+        root_y: ctypes.c_int = ctypes.c_int()
+        win_x: ctypes.c_int = ctypes.c_int()
+        win_y: ctypes.c_int = ctypes.c_int()
+        mask: ctypes.c_uint = ctypes.c_uint()
         if not self.lib.XQueryPointer(
             self.display,
             self.root,
@@ -93,10 +93,14 @@ class Xlib:
         return PointerPosition(root_x.value, root_y.value)
 
 
+def _query_pointer_position() -> PointerPosition:
+    with Xlib() as xlib:
+        return xlib.pointer_position()
+
+
 def pointer_position() -> PointerPosition | None:
     try:
-        with Xlib() as xlib:
-            return xlib.pointer_position()
+        return _query_pointer_position()
     except (OSError, RuntimeError):
         return None
 
@@ -115,13 +119,14 @@ WINDOW_CONFIGS = (
 
 class Screenshot:
     def __init__(self) -> None:
+        self.width, self.height, self.data = self._capture()
+
+    @staticmethod
+    def _capture() -> tuple[int, int, bytes]:
         with mss.mss() as screen_capture:
             monitor = screen_capture.monitors[1]
             image = screen_capture.grab(monitor)
-
-        self.width = image.width
-        self.height = image.height
-        self.data = bytes(image.bgra)
+        return image.width, image.height, bytes(image.bgra)
 
 
 def read_shader(name: str) -> str:
@@ -129,7 +134,7 @@ def read_shader(name: str) -> str:
 
 
 def shader_info_log(shader: int) -> str:
-    length = gl.GLint()
+    length: gl.GLint = gl.GLint()
     gl.glGetShaderiv(shader, gl.GL_INFO_LOG_LENGTH, ctypes.byref(length))
     if length.value <= 1:
         return ""
@@ -139,7 +144,7 @@ def shader_info_log(shader: int) -> str:
 
 
 def program_info_log(program: int) -> str:
-    length = gl.GLint()
+    length: gl.GLint = gl.GLint()
     gl.glGetProgramiv(program, gl.GL_INFO_LOG_LENGTH, ctypes.byref(length))
     if length.value <= 1:
         return ""
@@ -149,17 +154,17 @@ def program_info_log(program: int) -> str:
 
 
 def compile_shader(source: str, shader_type: int) -> int:
-    shader = gl.glCreateShader(shader_type)
+    shader: int = gl.glCreateShader(shader_type)
     source_buffer = ctypes.create_string_buffer(source.encode())
     source_pointer = ctypes.cast(
         ctypes.pointer(ctypes.pointer(source_buffer)),
         ctypes.POINTER(ctypes.POINTER(gl.GLchar)),
     )
-    length = gl.GLint(len(source_buffer.value))
+    length: gl.GLint = gl.GLint(len(source_buffer.value))
     gl.glShaderSource(shader, 1, source_pointer, ctypes.byref(length))
     gl.glCompileShader(shader)
 
-    success = gl.GLint()
+    success: gl.GLint = gl.GLint()
     gl.glGetShaderiv(shader, gl.GL_COMPILE_STATUS, ctypes.byref(success))
     if not success.value:
         raise RuntimeError(shader_info_log(shader))
@@ -167,9 +172,9 @@ def compile_shader(source: str, shader_type: int) -> int:
 
 
 def create_shader_program() -> int:
-    vertex = compile_shader(read_shader("vert.glsl"), gl.GL_VERTEX_SHADER)
-    fragment = compile_shader(read_shader("frag.glsl"), gl.GL_FRAGMENT_SHADER)
-    program = gl.glCreateProgram()
+    vertex: int = compile_shader(read_shader("vert.glsl"), gl.GL_VERTEX_SHADER)
+    fragment: int = compile_shader(read_shader("frag.glsl"), gl.GL_FRAGMENT_SHADER)
+    program: int = gl.glCreateProgram()
     gl.glAttachShader(program, vertex)
     gl.glAttachShader(program, fragment)
     gl.glBindAttribLocation(program, 0, b"aPos")
@@ -178,7 +183,7 @@ def create_shader_program() -> int:
     gl.glDeleteShader(vertex)
     gl.glDeleteShader(fragment)
 
-    success = gl.GLint()
+    success: gl.GLint = gl.GLint()
     gl.glGetProgramiv(program, gl.GL_LINK_STATUS, ctypes.byref(success))
     if not success.value:
         raise RuntimeError(program_info_log(program))
@@ -200,42 +205,13 @@ class PoomerWindow(XlibWindow):
         self.screenshot = Screenshot()
         display = pyglet.display.get_display()
         screen = display.get_default_screen()
-        width = min(self.screenshot.width, screen.width)
-        height = min(self.screenshot.height, screen.height)
-        last_error: NoSuchConfigException | None = None
-        for window_config in WINDOW_CONFIGS:
-            try:
-                style = (
-                    None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
-                )
-                super().__init__(
-                    width=width,
-                    height=height,
-                    caption="poomer",
-                    fullscreen=False,
-                    resizable=windowed,
-                    style=style,
-                    screen=screen,
-                    vsync=True,
-                    config=window_config,
-                )
-                if not windowed:
-                    self.set_location(screen.x, screen.y)
-                break
-            except NoSuchConfigException as error:
-                last_error = error
-        else:
-            raise RuntimeError(
-                "Could not create an OpenGL window. Make sure this is running under "
-                "X11/GLX with a working OpenGL driver. If you are using Nix as a "
-                "package manager on a non-NixOS distro, run `poomer-nixgl-nvidia` "
-                "for NVIDIA or `poomer-nixgl-mesa` for Mesa/AMD/Intel."
-            ) from last_error
-
+        width: int = min(self.screenshot.width, screen.width)
+        height: int = min(self.screenshot.height, screen.height)
+        self._create_window(screen, width, height, windowed)
         self.app_config = config
         self.config_path = config_path
         self.camera = Camera(scale=1.0)
-        cursor = self.window_pointer_position(pointer_restore)
+        cursor: Vec2 = self.window_pointer_position(pointer_restore)
         self.mouse_state = Mouse(curr=cursor, prev=cursor)
         self.flashlight = Flashlight()
         self.mirror = False
@@ -252,20 +228,58 @@ class PoomerWindow(XlibWindow):
         self.create_texture()
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
+    def _try_window_config(
+        self, screen: object, width: int, height: int, windowed: bool, window_config: object
+    ) -> bool:
+        try:
+            style = (
+                None if windowed else pyglet.window.Window.WINDOW_STYLE_BORDERLESS
+            )
+            super().__init__(
+                width=width,
+                height=height,
+                caption="poomer",
+                fullscreen=False,
+                resizable=windowed,
+                style=style,
+                screen=screen,
+                vsync=True,
+                config=window_config,
+            )
+            self.set_location(screen.x, screen.y)
+            return True
+        except NoSuchConfigException:
+            return False
+
+    def _create_window(
+        self, screen: object, width: int, height: int, windowed: bool
+    ) -> None:
+        for window_config in WINDOW_CONFIGS:
+            if self._try_window_config(screen, width, height, windowed, window_config):
+                return
+        raise RuntimeError(
+            "Could not create an OpenGL window. Make sure this is running under "
+            "X11/GLX with a working OpenGL driver. If you are using Nix as a "
+            "package manager on a non-NixOS distro, run `poomer-nixgl-nvidia` "
+            "for NVIDIA or `poomer-nixgl-mesa` for Mesa/AMD/Intel."
+        )
+
     def window_pointer_position(self, position: PointerPosition | None) -> Vec2:
         if position is None:
             return Vec2()
+        window_x: int
+        window_y: int
         window_x, window_y = self.get_location()
-        x = clamp(float(position.x - window_x), 0.0, float(self.width))
-        y = clamp(float(position.y - window_y), 0.0, float(self.height))
+        x: float = clamp(float(position.x - window_x), 0.0, float(self.width))
+        y: float = clamp(float(position.y - window_y), 0.0, float(self.height))
         return Vec2(
             x,
             float(self.height) - y,
         )
 
     def create_buffers(self) -> None:
-        w = float(self.screenshot.width)
-        h = float(self.screenshot.height)
+        w: float = float(self.screenshot.width)
+        h: float = float(self.screenshot.height)
         vertices = (gl.GLfloat * 16)(
             w,
             0.0,
@@ -306,7 +320,7 @@ class PoomerWindow(XlibWindow):
             gl.GL_STATIC_DRAW,
         )
 
-        stride = 4 * ctypes.sizeof(gl.GLfloat)
+        stride: int = 4 * ctypes.sizeof(gl.GLfloat)
         gl.glVertexAttribPointer(
             0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(0)
         )
@@ -325,7 +339,7 @@ class PoomerWindow(XlibWindow):
         gl.glGenTextures(1, ctypes.byref(self.texture))
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
-        data = ctypes.create_string_buffer(self.screenshot.data)
+        data: ctypes.Array[ctypes.c_char] = ctypes.create_string_buffer(self.screenshot.data)
         gl.glTexImage2D(
             gl.GL_TEXTURE_2D,
             0,
@@ -346,21 +360,25 @@ class PoomerWindow(XlibWindow):
             gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER
         )
 
+    def _scroll_zoom(self, direction: float) -> None:
+        self.camera.delta_scale += self.app_config.scroll_speed * direction
+        self.camera.scale_pivot = self.mouse_state.curr
+
+    def _scroll_flashlight(self, direction: float) -> None:
+        d: float = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
+        self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS * d * direction
+
     def scroll_up(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
-            direction = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
-            self.flashlight.delta_radius += INITIAL_FL_DELTA_RADIUS * direction
+            self._scroll_flashlight(1.0)
         else:
-            self.camera.delta_scale += self.app_config.scroll_speed
-            self.camera.scale_pivot = self.mouse_state.curr
+            self._scroll_zoom(1.0)
 
     def scroll_down(self) -> None:
         if self.ctrl_down and self.flashlight.enabled:
-            direction = -1.0 if self.app_config.reverse_highlight_scroll else 1.0
-            self.flashlight.delta_radius -= INITIAL_FL_DELTA_RADIUS * direction
+            self._scroll_flashlight(-1.0)
         else:
-            self.camera.delta_scale -= self.app_config.scroll_speed
-            self.camera.scale_pivot = self.mouse_state.curr
+            self._scroll_zoom(-1.0)
 
     def on_draw(self) -> None:
         gl.glClearColor(0.1, 0.1, 0.1, 1.0)
@@ -410,26 +428,32 @@ class PoomerWindow(XlibWindow):
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         self.mouse_state.prev = self.mouse_state.curr
 
+    def _handle_drag(self) -> None:
+        delta: Vec2 = self.camera.world(self.mouse_state.prev) - self.camera.world(
+            self.mouse_state.curr
+        )
+        self.camera.position = self.camera.position + delta
+        self.camera.velocity = delta * self.rate
+
     def on_mouse_drag(
         self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int
     ) -> None:
         del dx, dy, modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if buttons & mouse.LEFT:
-            delta = self.camera.world(self.mouse_state.prev) - self.camera.world(
-                self.mouse_state.curr
-            )
-            self.camera.position = self.camera.position + delta
-            self.camera.velocity = delta * self.rate
+            self._handle_drag()
         self.mouse_state.prev = self.mouse_state.curr
+
+    def _handle_press(self) -> None:
+        self.mouse_state.prev = self.mouse_state.curr
+        self.mouse_state.drag = True
+        self.camera.velocity = Vec2()
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
         del modifiers
         self.mouse_state.curr = Vec2(float(x), float(self.height - y))
         if button == mouse.LEFT:
-            self.mouse_state.prev = self.mouse_state.curr
-            self.mouse_state.drag = True
-            self.camera.velocity = Vec2()
+            self._handle_press()
 
     def on_mouse_release(self, x: int, y: int, button: int, modifiers: int) -> None:
         del x, y, modifiers
@@ -457,10 +481,9 @@ class PoomerWindow(XlibWindow):
             self.mirror = False
         elif symbol in (key.Q, key.ESCAPE):
             self.close()
-        elif symbol == key.R:
-            if self.config_path.exists():
-                self.app_config = load_config(self.config_path)
-                print(f"Reloaded config: {self.app_config}")
+        elif symbol == key.R and self.config_path.exists():
+            self.app_config = load_config(self.config_path)
+            print(f"Reloaded config: {self.app_config}")
         elif symbol == key.M:
             self.camera.position.x += self.screenshot.width / self.camera.scale - 2 * (
                 self.mouse_state.curr.x / self.camera.scale + self.camera.position.x
@@ -515,29 +538,31 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _handle_new_config(config_path: Path) -> int:
+    if config_path.exists() and input(f"File {config_path} already exists. Replace it? [yn] ").lower() != "y":
+        print("Disaster prevented")
+        return 1
+    generate_default_config(config_path)
+    print(f"Generated config at {config_path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(sys.argv[1:] if argv is None else argv)
+    args: argparse.Namespace = parse_args(sys.argv[1:] if argv is None else argv)
     if args.new_config is not None:
-        if args.new_config.exists():
-            answer = input(f"File {args.new_config} already exists. Replace it? [yn] ")
-            if answer.lower() != "y":
-                print("Disaster prevented")
-                return 1
-        generate_default_config(args.new_config)
-        print(f"Generated config at {args.new_config}")
-        return 0
+        return _handle_new_config(args.new_config)
 
     if args.delay > 0:
         time.sleep(args.delay)
 
-    config = Config()
+    config: Config = Config()
     if args.config.exists():
         config = load_config(args.config)
     else:
         print(f"{args.config} doesn't exist. Using default values.", file=sys.stderr)
     print(f"Using config: {config}")
 
-    original_pointer_position = pointer_position()
+    original_pointer_position: PointerPosition | None = pointer_position()
     PoomerWindow(config, args.config, args.windowed, original_pointer_position)
     pyglet.app.run()
     return 0

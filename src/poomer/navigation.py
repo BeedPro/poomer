@@ -5,7 +5,7 @@ from math import hypot
 
 from poomer.config import Config
 
-VELOCITY_THRESHOLD = 15.0
+VELOCITY_THRESHOLD: float = 15.0
 
 
 @dataclass(slots=True)
@@ -52,9 +52,9 @@ class Camera:
         self, config: Config, dt: float, mouse: Mouse, window_size: Vec2
     ) -> None:
         if abs(self.delta_scale) > 0.5:
-            p0 = (self.scale_pivot - window_size * 0.5) / self.scale
+            p0: Vec2 = (self.scale_pivot - window_size * 0.5) / self.scale
             self.scale = max(self.scale + self.delta_scale * dt, config.min_scale)
-            p1 = (self.scale_pivot - window_size * 0.5) / self.scale
+            p1: Vec2 = (self.scale_pivot - window_size * 0.5) / self.scale
             self.position = self.position + (p0 - p1)
             self.delta_scale -= self.delta_scale * dt * config.scale_friction
 

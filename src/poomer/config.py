@@ -13,25 +13,38 @@ class Config:
     reverse_highlight_scroll: bool = True
 
 
-DEFAULT_CONFIG = Config()
+DEFAULT_CONFIG: Config = Config()
 
 
 def parse_bool(value: str) -> bool:
-    match value.lower():
-        case "true" | "yes" | "on" | "1":
-            return True
-        case "false" | "no" | "off" | "0":
-            return False
-        case _:
-            raise ValueError(f"expected boolean value, got {value!r}")
+    if value.lower() in ("true", "yes", "on", "1"):
+        return True
+    if value.lower() in ("false", "no", "off", "0"):
+        return False
+    raise ValueError(f"expected boolean value, got {value!r}")
 
 
 def default_config_path() -> Path:
     return Path.home() / ".config" / "poomer" / "config"
 
 
+def _set_config_value(config: Config, key: str, value: str) -> None:
+    if key == "min_scale":
+        config.min_scale = float(value)
+    elif key == "scroll_speed":
+        config.scroll_speed = float(value)
+    elif key == "drag_friction":
+        config.drag_friction = float(value)
+    elif key == "scale_friction":
+        config.scale_friction = float(value)
+    elif key == "reverse_highlight_scroll":
+        config.reverse_highlight_scroll = parse_bool(value)
+    else:
+        raise ValueError(f"unknown config key {key!r}")
+
+
 def load_config(path: Path) -> Config:
-    config = Config(
+    config: Config = Config(
         min_scale=DEFAULT_CONFIG.min_scale,
         scroll_speed=DEFAULT_CONFIG.scroll_speed,
         drag_friction=DEFAULT_CONFIG.drag_friction,
@@ -40,29 +53,16 @@ def load_config(path: Path) -> Config:
     )
 
     for line_number, raw_line in enumerate(path.read_text().splitlines(), start=1):
-        line = raw_line.strip()
+        line: str = raw_line.strip()
         if not line or line.startswith("#"):
             continue
         if "=" not in line:
             raise ValueError(f"{path}:{line_number}: expected key = value")
 
+        key: str
+        value: str
         key, value = (part.strip() for part in line.split("=", 1))
-        match key:
-            case "min_scale":
-                config.min_scale = float(value)
-            case "scroll_speed":
-                config.scroll_speed = float(value)
-            case "drag_friction":
-                config.drag_friction = float(value)
-            case "scale_friction":
-                config.scale_friction = float(value)
-            case "reverse_highlight_scroll":
-                try:
-                    config.reverse_highlight_scroll = parse_bool(value)
-                except ValueError as error:
-                    raise ValueError(f"{path}:{line_number}: {error}") from error
-            case _:
-                raise ValueError(f"{path}:{line_number}: unknown config key {key!r}")
+        _set_config_value(config, key, value)
 
     return config
 
