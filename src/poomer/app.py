@@ -11,6 +11,7 @@ from typing import NamedTuple
 
 import mss
 import pyglet
+from pyglet.display import Screen
 
 from poomer import __version__
 from poomer.config import (
@@ -234,7 +235,7 @@ class PoomerWindow(XlibWindow):
         pyglet.clock.schedule_interval(self.update, 1.0 / self.rate)
 
     def _try_window_config(
-        self, screen: pyglet.display.Screen, width: int, height: int, windowed: bool, window_config: object
+        self, screen: Screen, width: int, height: int, windowed: bool, window_config: object
     ) -> bool:
         try:
             style = (
@@ -257,7 +258,7 @@ class PoomerWindow(XlibWindow):
             return False
 
     def _create_window(
-        self, screen: pyglet.display.Screen, width: int, height: int, windowed: bool
+        self, screen: Screen, width: int, height: int, windowed: bool
     ) -> None:
         for window_config in WINDOW_CONFIGS:
             if self._try_window_config(screen, width, height, windowed, window_config):
